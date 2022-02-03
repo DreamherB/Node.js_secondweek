@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.js"
+        integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <!-- Ajax -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Bulma link -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" type="text/css" href="css.css">
+
+    <title>메인페이지(게시글 목록)</title>
+
+    <script>
+
+        function date_descending(a, b) { // 내림차순 함수
+                        var dateA = new Date(a['date']).getTime();
+                        var dateB = new Date(b['date']).getTime();
+                        return dateA < dateB ? 1 : -1;
+                    };
+
+                    /* 메인페이지 불러오기 */
+        $(document).ready(function () {
+
+            axios.get("/api/showPostings")
+                .then(function (response) {
+                    // response  
+
+                let postings = response.data.postings.sort(date_descending) // 내림차순
+                   let i = 0
+
+                    for (i ; i < postings.length ; i++) {
+
+                        let number = postings.length - i
+                        let title = postings[i].title
+                        let author = postings[i].author
+                        let date = postings[i].date
+                        let pwd = postings[i].pwd
+                        let id = postings[i]._id
+
+                        
+                        let temp_html = `<tr>
+                    <th><strong>${number}</strong></th>
+                    <td><a href="/details.html" onclick = "postingDetails('${id}')" title="title">${title}</a>
+                    </td>
+                    <td>${author}</td>
+                    <td>댓글자리</td>
+                    <td>${date}</td>
+                </tr>`
+
+                $('#tableBody').append(temp_html);
+
+                    }
+
+                }).catch(function (error) {
+                    // 오류발생시 실행
+                    console.log(error)
+                })
+        });
+
+        async function postingDetails(id) {
+            
+            try{
+          return await axios.post("/api/details", { id })
+                } catch (error){
+          console.error(error);
+        }
+      };
+
+    </script>
+
+</head>
+
+<body>
+
+    <!-- 메인 네비게이션 바 구역 -->
+
+    <nav class="navbar bodyWidth" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/">
+                <h2><strong>으디야! 커피입니다.</strong></h2>
+            </a>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="/new_posting.html">
+                    게시글 작성
+                </a>
+            </div>
+
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <button class="button is-info" onclick="location.href='sign-in.html'"><strong>Sign in</strong></button>
+                        <button class="button is-info is-light" onclick="location.href='sign-up.html'">Sign up</button>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <hr>
+
+    <!-- 게시글 노출 구역 -->
+    <div id="postingsList" class="bodyWidth">
+        <table class="table is-hoverable is-fullwidth is-striped table">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>제목</th>
+                    <th>작성자명</th>
+                    <th>댓글</th>
+                    <th>작성일자</th>
+                </tr>
+            </thead>
+            <tfoot>
+                <tr>
+                </tr>
+            </tfoot>
+            <tbody id="tableBody"> <!--게시물 들어갈 자리-->
+            
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

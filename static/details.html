@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- JQuery -->
+  <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+    crossorigin="anonymous"></script>
+  <!-- Ajax -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+  <!-- Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <!-- Bulma link -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  <link rel="stylesheet" type="text/css" href="css.css">
+
+  <title>메인페이지(게시글 목록)</title>
+
+  <script>
+
+
+    let pwd = ''
+    let id = ''
+    let checkingNickname = ''
+    // const axios = require('axios'); // node.js에서 js 파일에 쓸 때는 이렇게 모듈 설치 코드가 필요하다
+    // 여기선 html에 썼기 때문에 위에 달린 Axios 소스 코드를 썼다.
+
+
+    $(document).ready(function () {
+      console.log("로딩하자마자 나옴");
+      /* 게시글 정보 불러오기 */
+      async function getPostingInfo() {
+
+        try {
+          const response = await axios.get("/api/detailsInfo");
+
+          let title = response.data.postingInfo[0].title
+          let author = response.data.postingInfo[0].author
+          let text = response.data.postingInfo[0].text
+          let pwd = response.data.postingInfo[0].pwd
+          id = response.data.postingInfo[0]._id
+
+          let temp_html = `<div class="field">
+      <label class="label">제목</label>
+      <div class="control">
+        <input class="input" type="text" placeholder="제목" id="title" value = "${title}" readonly>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">작성자명</label>
+
+      <input class="input" type="text" placeholder="작성자명을 입력해주세요." id="author" value = "${author}" readonly>
+      <span class="icon is-small is-left">
+        <i class="fas fa-user"></i>
+      </span>
+      <span class="icon is-small is-right">
+        <i class="fas fa-check"></i>
+      </span>
+
+      <p class="help is-success">This username is available</p>
+    </div>
+
+    <div class="field">
+      <label class="label">내용</label>
+      <div class="control">
+        <textarea class="textarea" placeholder="" id="text" readonly>${text}</textarea>
+      </div>
+    </div>
+
+
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-info" onclick="location.href = '/update.html'">수정/삭제</button>
+      </div>
+      <div class="control">
+        <button class="button is-info is-light" href="/">취소</button>
+      </div>
+    </div>`
+
+          $('#postingsList').append(temp_html);
+
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
+      getPostingInfo();
+
+      /* 댓글정보 불러와서 표시 */
+
+      async function getComments() {
+
+        $('#tableBody').empty()
+
+        try {
+          const response = await axios.get("/api/get-comments");
+          console.log('댓글정보 불러오기', response.data)
+
+          let arr = response.data.comment
+          let i = 0;
+          let orderNumber = 0
+          let comment_temp
+
+          for (i; 0 < arr.length - i; i++) { //최신 댓글이 위로 오도록 거꾸로 나열
+
+            if (arr[arr.length - i - 1].postingId === id) { // postingId와 해당 게시글의 Id가 같은 경우만 표시
+
+              let nickname = arr[arr.length - i - 1].nickname;
+              let comment = arr[arr.length - i - 1].comment;
+              let date = arr[arr.length - i - 1].date;
+              orderNumber += 1
+
+
+              if (nickname === checkingNickname) {
+
+                console.log('실행되었어')
+                comment_temp = `<tr>
+          <th><strong>${orderNumber}</strong></th>
+          <td id="commentNickname">${nickname}</td>
+          <td>${comment}</td>
+          <td>${date}</td>
+          <button class="button is-link is-light is-small" id="edit-btn">수정</button>
+          <button class="delete" id="delete-btn" on>삭제</button>
+        </tr>`
+              } else {
+                console.log('안되었어')
+                comment_temp = `<tr>
+          <th><strong>${orderNumber}</strong></th>
+          <td id="commentNickname">${nickname}</td>
+          <td>${comment}</td>
+          <td>${date}</td>
+        </tr>`
+              }
+
+              $('#tableBody').append(comment_temp);
+
+            }
+          }
+        } catch (error) {
+          console.error(error);
+
+        }
+
+      };
+
+
+
+      getComments(); // 로딩되자마자 함수 실행
+
+    });
+
+    /* 당사자 로그인 여부에 따라 댓글 수정/삭제 버튼 표시 */
+    
+    
+
+/* 당사자 로그인 여부 검사 */
+
+if (localStorage.getItem('token')) {
+        checkLoginStatus()
+      }
+      function checkLoginStatus() {
+
+        console.log("ajax 시작")
+    $.ajax({
+      type: "GET",
+      url: "/api/users/me",
+      headers: {
+        authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      success: function (response) {
+        
+        checkingNickname = response.user.nickname; // 로그인한 계정의 닉네임
+      },
+      error: function (xhr, status, error) {
+        if (status == 401) {
+          alert("로그인이 필요합니다.");
+        } else {
+          localStorage.clear();
+          alert("알 수 없는 문제가 발생했습니다. 관리자에게 문의하세요.");
+        }
+        window.location.href = "/";
+      },
+    });
+  }
+  
+    
+    /* 이 위까지는 로딩하자 마자 실행됨 */ 
+
+/* 로그아웃 */
+function signOut() {
+    localStorage.clear();
+    window.location.href = "/";
+  }
+
+    /* 댓글 DB에 등록 */
+    async function leaveComments() {
+
+      let postingId = id; //
+
+      const comment = document.getElementById("comment").value;
+
+      if (!localStorage.getItem("token")) { // 로그인 상태 아니면 로그인 시키기
+
+        alert("로그인이 필요한 기능입니다.");
+        window.location.replace("/sign-in.html");
+      } else if (comment === "") {
+
+        alert("댓글 내용을 입력해주세요."); // 댓글이 빈칸이면 댓글 작성 요청하기
+      } else {
+        try {
+
+          const response = await axios.post(`/api/send-comments/${postingId}`, {
+            comment,
+
+          }, {
+            // params: `${postingId}`,
+            headers: {
+              authorization: `Bearer ${localStorage.getItem("token")}` // Bearer 방식으로 로컬에 저장돤 토큰 전달
+            }
+          })
+          alert("댓글 작성완료"),
+            window.location.reload();
+        } catch (error) {
+          console.error(error);
+          alert('댓글이 정상적으로 작성되지 않았습니다.')
+          // alert(error.errorMessage); 로는 어떻게 받을까?
+        }
+      }
+    }
+
+
+
+  </script>
+
+</head>
+
+<body>
+
+  <!-- 메인 네비게이션 바 구역 -->
+
+  <nav class="navbar bodyWidth" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <h2><strong>으디야! 커피입니다.</strong></h2>
+      </a>
+
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navbarBasicExample" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/new_posting.html">
+          게시글 작성
+        </a>
+      </div>
+
+      <div class="navbar-end">
+        <div class="navbar-item">
+          <div class="buttons">
+            <button class="button is-info" onclick="location.href = '/sign-in.html'"><strong>Sign in</strong></button>
+            <button class="button is-info is-light" onclick="location.href = '/sign-up.html'">Sign up</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <hr>
+
+  <!-- 게시글 노출 구역 -->
+  <div id="postingsList" class="bodyWidth">
+
+  </div>
+  <br>
+  <br>
+  <!-- 댓글 노출 구역 -->
+  <div id="commentsList" class="bodyWidth">
+
+    <table class="table is-hoverable is-fullwidth is-striped table">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>작성자</th>
+          <th>댓글</th>
+          <th>작성일자</th>
+        </tr>
+      </thead>
+      <tfoot>
+        <tr>
+        </tr>
+      </tfoot>
+      <!--댓글 게시물 들어갈 자리-->
+      <tbody id="tableBody">
+
+      </tbody>
+    </table>
+
+  </div>
+  <br>
+  <br>
+  <!-- 댓글 작성 구역 -->
+  <div id="leavingComments" class="bodyWidth">
+
+    <input class="input" type="text" placeholder="댓글을 입력해주세요" id="comment">
+    <button class="button is-info is-light" onclick="leaveComments()">작성하기</button>
+
+  </div>
+
+</body>
+
+</html>
